@@ -1,0 +1,32 @@
+- name: Provision EC2 instance
+  hosts: localhost
+  gather_facts: no
+  vars:
+    region: ap-south-1
+    ami: ami-0f5ee92e2d63afc18
+    instance_type: t2.micro
+    key_name: passw
+    security_group: launch-wizard-1
+  tasks:
+    - name: Launch EC2
+      amazon.aws.ec2_instance:
+        name: "nginx-server"
+        key_name: "{{ key_name }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ ami }}"
+        wait: yes
+        region: "{{ region }}"
+        count: 1
+        security_groups: ["{{ security_group }}"]
+      register: ec2
+
+    - name: Add EC2 to inventory
+      add_host:
+        name: "{{ ec2.instances[0].public_ip_address }}"
+        groups: launched
+
+    - name: Wait for SSH
+      wait_for:
+        host: "{{ ec2.instances[0].public_ip_address }}"
+        port: 22
+        timeout: 300
